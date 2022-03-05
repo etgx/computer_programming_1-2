@@ -1,0 +1,7 @@
+{
+    "python.pythonPath": "C:\\Users\\quant\\Anaconda3\\python.exe",
+    "files.associations": {
+        "stdio.h": "c",
+        "numeric": "c"
+    },
+}

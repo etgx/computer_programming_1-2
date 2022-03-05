@@ -1,0 +1,12 @@
+11
+print
+range_erase 3 53
+min
+insert 90
+insert 36
+min
+insert 1
+print
+insert 26
+range_erase 7 57
+print

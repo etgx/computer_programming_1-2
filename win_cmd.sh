@@ -1,0 +1,3 @@
+echo "hello"
+ls
+mkdir

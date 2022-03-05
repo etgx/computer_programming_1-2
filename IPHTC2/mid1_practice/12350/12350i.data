@@ -1,0 +1,27 @@
+26
+insert a
+insert b
+insert c
+insert d
+insert e
+insert f
+insert g
+show
+go_right 2
+deletion
+show
+go_right 2
+backspace
+show
+go_left 4
+insert L
+show
+go_right 2
+insert R
+show
+go_home
+insert H
+show
+go_end
+insert E
+show
