@@ -128,10 +128,10 @@ void solveJosephus(int n, int k){
     for(int i = 0; i < k; i++){
         int mod = 0, lucky_num = 0, dir = 0;
         scanf("%d", &lucky_num);
+        // Decide to go forward or go back
         dir = lucky_num % 2;
         // Index from 0
         lucky_num--;
-        mod = lucky_num % current_n;
         // printf("Temp at %d\n", temp->number);
 
         if(last_del != NULL){
@@ -148,10 +148,10 @@ void solveJosephus(int n, int k){
             current_n--;
         }
 
+        // You should compute the modulo after reducing the length of the linked list.
+        mod = lucky_num % current_n;
+
         // Because we index the node from 1, when mod == 0, it actually ask to remove the node before temp.
-        // if(mod == 0){
-        //     temp = temp->prev;
-        // }
         for(int j = 0; j < mod; j++){
             if(dir){
                 temp = temp->next;

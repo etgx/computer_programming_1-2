@@ -247,9 +247,13 @@ Final Exam
 
 ## I2P-2 - Yang
 
-> [Week1 12668 Text Editor - Linked List Version](./I2P_II_Yang/mid1_practice/12668/12668.c)
+> [HW1 12668 Text Editor - Linked List Version](./I2P_II_Yang/mid1_practice/12668/12668.c)
 
-> [Week1 12680 - Card Magic](./I2P_II_Yang/mid1_practice/12680/function.c) Done
+> [HW1 12680 - Card Magic](./I2P_II_Yang/mid1_practice/12680/function.c) Done
+
+> [HW1 13438 - Lucky money 1](./I2P_II_Yang/mid1_practice/13438/function.c) Done
+
+> [HW1 13134 - Band Ya Rou Ze](./I2P_II_Yang/mid1_practice/13134/13134.c)
 
 
 ## I2P-2 - Kuo
@@ -268,7 +272,7 @@ Final Exam
 
 > [Winter Vacation HW 12615 - Knight Search](./I2P_II_Kuo/mid1_practice/12615/12615.c) Done
 
-> [HW1 13129 - prize!](./I2P_II_Kuo/mid1_practice/13129/function.c)
+> [HW1 13129 - prize!](./I2P_II_Kuo/mid1_practice/13129/function.c) Done
 
 > [HW1 13431 - Palindrome Linked List](./I2P_II_Kuo/mid1_practice/13431/function.c) Done
 

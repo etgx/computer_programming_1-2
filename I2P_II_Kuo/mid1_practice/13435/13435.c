@@ -243,6 +243,7 @@ Node *find_farthest(Node *root, int dis_mode, Node *map){
 }
 
 int get_longest_path(Node **root, Node *map){
+    if(*root == NULL) return 0;
     // printf("Find SRC\n");
     Node *src = find_farthest(*root, 0, map);
     // printf("Find DEST\n");
@@ -250,7 +251,7 @@ int get_longest_path(Node **root, Node *map){
     return dest->dis_from_root[1] - 1;
 }
 
-void del_tree(Node **head, Node *map, int N){
+void del_tree(Node *map, int N){
     for(int i = 0; i <= N; i++){
         Adjacent *temp_adj = map[i].adjacents;
         
@@ -289,11 +290,11 @@ int main(){
             add_node(u_i, v_i, &root, map);
         }
 
-        printf("\n================\n");
-        print_tree(root, map, N);
-        printf("\n================\n");
+        // printf("\n================\n");
+        // print_tree(root, map, N);
+        // printf("\n================\n");
 
         printf("%d\n", get_longest_path(&root, map));
-        del_tree(&root, map, N);
+        del_tree(map, N);
     }
 }
