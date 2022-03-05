@@ -57,10 +57,16 @@
 #define PARAM_N 2
 #define DIS_MODE 3
 
+typedef struct adjacent{
+    int x;
+    struct adjacent *next;
+}Adjacent;
+
 typedef struct node{
     int x;
     int dis_from_root[DIS_MODE];
-    struct node *adjacent, *next_adjacent;
+    Adjacent *adjacents;
+    // struct node *adjacent, *next_adjacent;
 }Node;
 
 void print_intention(int iten){
@@ -69,33 +75,37 @@ void print_intention(int iten){
     }
 }
 
-void print_tree(Node *root){
+void print_tree(Node *root, Node *map, int N){
     if(root == NULL) return;
-    printf("[%d] -> ", root->x);
-    Node *temp = root->adjacent;
-    for(; temp != NULL;){
-        printf("[%d] ", temp->x);
-        temp = temp->next_adjacent;
-    }
-    printf("\n");
 
-    temp = root->adjacent;
-    for(; temp != NULL;){
-        print_tree(temp);
-        temp = temp->next_adjacent;
+    for(int i = 1; i < N; i++){
+        printf("[%d] -> ", map[i].x);
+        Adjacent *temp = map[i].adjacents;
+        for(; temp != NULL;){
+            printf("[%d] ", map[temp->x].x);
+            temp = temp->next;
+        }
+        printf("\n");
     }
 }
 
+Adjacent *init_new_adjacent(int x){
+    Adjacent *new_adj = (Adjacent*)malloc(sizeof(Adjacent));
+    new_adj->next = NULL;
+    new_adj->x = x;
+
+    return new_adj;
+}
+
 void add_adjacent(Node *target, Node *adjacent){
-    if(target->adjacent == NULL){
-        target->adjacent = adjacent;
+    if(target->adjacents == NULL){
+        target->adjacents = init_new_adjacent(adjacent->x);
     }else{
-        Node *temp = target->adjacent;
-        for(; temp->next_adjacent != NULL;){
-            temp = temp->next_adjacent;
+        Adjacent *temp = target->adjacents;
+        for(; temp->next != NULL;){
+            temp = temp->next;
         }
-        adjacent->next_adjacent = temp->next_adjacent;
-        temp->next_adjacent = adjacent;
+        temp->next = init_new_adjacent(adjacent->x);
     }
 }
 
@@ -104,30 +114,28 @@ void add_adjacent_both(Node *a, Node *b){
     add_adjacent(b, a);
 }
 
+void setup_new_node(Node *node, int x){
+    node->x = x;
+    node->adjacents = NULL;
+
+    for(int i = 0; i < DIS_MODE; i++){
+        node->dis_from_root[i] = 0;
+    }
+}
+
 Node* init_new_node(int x){
     Node *new_node = (Node*)malloc(sizeof(Node));
-    new_node->x = x;
-    for(int i = 0; i < DIS_MODE; i++){
-        new_node->dis_from_root[i] = 0;
-    }
-    new_node->adjacent = new_node->next_adjacent = NULL;
+    setup_new_node(new_node, x);
+    
     return new_node;
 }
 
-void add_node(int a, int b, Node **head, Node **map){
-    int ab[PARAM_N] = {a, b};
-    for(int i = 0; i < PARAM_N; i++){
-        if(map[ab[i]] == NULL){
-            Node *new_node = init_new_node(ab[i]);
-            map[ab[i]] = new_node;
-        }
-    }
-
+void add_node(int a, int b, Node **head, Node *map){
     if(*head == NULL){
-        *head = map[a];
+        *head = &(map[a]);
     }
 
-    add_adjacent_both(map[a], map[b]);
+    add_adjacent_both(&(map[a]), &(map[b]));
 }
 
 typedef struct queue_struct{
@@ -191,7 +199,7 @@ int is_queue_empty(QueueStruct *head, QueueStruct *tail){
     else return 0;
 }
 
-Node *find_farthest(Node *root, int dis_mode){
+Node *find_farthest(Node *root, int dis_mode, Node *map){
     if(root == NULL) return NULL;
 
     // Queue
@@ -209,21 +217,23 @@ Node *find_farthest(Node *root, int dis_mode){
     for(; !is_queue_empty(head, tail);){
         temp = dequeue(head, tail);
         dis_from_root = temp->dis_from_root[dis_mode] + 1;
-        Node *temp_adj = temp->adjacent;
+        // Node *temp_adj_node = temp->adjacent;
+        Adjacent *temp_adj = temp->adjacents;
 
         // printf("(%d) DEQUEUE HEAD ", dis_from_root);
         // show_queue(head, tail);
         
         // Enqueue adjacent nodes
         for(; temp_adj != NULL;){
-            if(temp_adj->dis_from_root[dis_mode] <= 0){
-                temp_adj->dis_from_root[dis_mode] = dis_from_root;
-                enqueue(head, tail, temp_adj);
+            Node *temp_adj_node = &(map[temp_adj->x]);
+            if(temp_adj_node->dis_from_root[dis_mode] <= 0){
+                temp_adj_node->dis_from_root[dis_mode] = dis_from_root;
+                enqueue(head, tail, temp_adj_node);
                 
                 // printf("(%d) ENQUEUE ADJ ", dis_from_root);
                 // show_queue(head, tail);
             }
-            temp_adj = temp_adj->next_adjacent;
+            temp_adj = temp_adj->next;
         }
 
         // printf("=================\n");
@@ -232,30 +242,25 @@ Node *find_farthest(Node *root, int dis_mode){
     return temp;
 }
 
-int get_longest_path(Node **root){
+int get_longest_path(Node **root, Node *map){
     // printf("Find SRC\n");
-    Node *src = find_farthest(*root, 0);
+    Node *src = find_farthest(*root, 0, map);
     // printf("Find DEST\n");
-    Node *dest = find_farthest(src, 1);
+    Node *dest = find_farthest(src, 1, map);
     return dest->dis_from_root[1] - 1;
 }
 
-void del_tree(Node **head){
-    if(*head == NULL) return;
-    const int dis_mode = 2;
-
-    // Mark as traversed
-    (*head)->dis_from_root[dis_mode] = 1;
-
-    Node *temp = (*head)->adjacent;
-    for(; temp != NULL;){
-        if(!temp->dis_from_root[dis_mode]){
-            Node **del_node = &temp;
-            del_tree(del_node);
+void del_tree(Node **head, Node *map, int N){
+    for(int i = 0; i <= N; i++){
+        Adjacent *temp_adj = map[i].adjacents;
+        
+        for(; temp_adj != NULL;){
+            Adjacent *del_adj = temp_adj;
+            temp_adj = temp_adj->next;
+            free(del_adj);
         }
-        temp = temp->next_adjacent;
     }
-    free(*head);
+    free(map);
 }
 
 int main(){
@@ -266,9 +271,14 @@ int main(){
         int N = 0;
         scanf("%d\n", &N);
 
-        Node **map = (Node**)malloc(sizeof(Node*) * (N + 1));
+        Node *map = (Node*)malloc(sizeof(Node) * (N + 1));
+        memset(map, 0, sizeof(Node) * (N + 1));
         for(int i = 0; i <= N; i++){
-            map[i] = NULL;
+            map[i].adjacents = NULL;
+            map[i].x = i;
+            for(int j = 0; j < DIS_MODE; j++){
+                map[i].dis_from_root[j] = 0;
+            }
         }
         Node *root = NULL;
 
@@ -279,12 +289,11 @@ int main(){
             add_node(u_i, v_i, &root, map);
         }
 
-        // printf("\n================\n");
-        // print_tree(root);
-        // printf("\n================\n");
+        printf("\n================\n");
+        print_tree(root, map, N);
+        printf("\n================\n");
 
-        printf("%d\n", get_longest_path(&root));
-        // del_tree(&root);
-        free(map);
+        printf("%d\n", get_longest_path(&root, map));
+        del_tree(&root, map, N);
     }
 }

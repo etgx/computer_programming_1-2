@@ -126,30 +126,34 @@ void solveJosephus(int n, int k){
     Node *temp = head, *last_del = NULL;
     int current_n = n;
     for(int i = 0; i < k; i++){
-        int mod = 0, lucky_num = 0;
+        int mod = 0, lucky_num = 0, dir = 0;
         scanf("%d", &lucky_num);
-        // If delete some node, shift the temp pointer
+        dir = lucky_num % 2;
+        // Index from 0
+        lucky_num--;
         mod = lucky_num % current_n;
-        if(i > 0 && ((lucky_num % 2) == 1)){
-            // Odd lucky number
-            temp = temp->next;
-        }else if(i > 0 && ((lucky_num % 2) == 0)){
-            // Even lucky number
-            temp = temp->prev;
-        }
         // printf("Temp at %d\n", temp->number);
 
         if(last_del != NULL){
+            // If delete some node, shift the temp pointer
+            if(dir == 1){
+                // Odd lucky number
+                temp = temp->next;
+            }else if(dir == 0){
+                // Even lucky number
+                temp = temp->prev;
+            }
+
             del(last_del);
             current_n--;
         }
 
         // Because we index the node from 1, when mod == 0, it actually ask to remove the node before temp.
-        if(mod == 0){
-            temp = temp->prev;
-        }
-        for(int j = 1; j < mod; j++){
-            if(lucky_num % 2){
+        // if(mod == 0){
+        //     temp = temp->prev;
+        // }
+        for(int j = 0; j < mod; j++){
+            if(dir){
                 temp = temp->next;
             }else{
                 temp = temp->prev;
