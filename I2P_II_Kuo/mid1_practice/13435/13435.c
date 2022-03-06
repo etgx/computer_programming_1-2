@@ -101,11 +101,11 @@ void add_adjacent(Node *target, Node *adjacent){
     if(target->adjacents == NULL){
         target->adjacents = init_new_adjacent(adjacent->x);
     }else{
-        Adjacent *temp = target->adjacents;
-        for(; temp->next != NULL;){
-            temp = temp->next;
-        }
-        temp->next = init_new_adjacent(adjacent->x);
+        // Add new adjacent in the front of the adjacent list
+        // Reduce time complexity
+        Adjacent *new_adjacent = init_new_adjacent(adjacent->x);
+        new_adjacent->next = target->adjacents->next;
+        target->adjacents->next = new_adjacent;
     }
 }
 
@@ -245,8 +245,11 @@ Node *find_farthest(Node *root, int dis_mode, Node *map){
 int get_longest_path(Node **root, Node *map){
     if(*root == NULL) return 0;
     // printf("Find SRC\n");
+    // Refers to "Longest path in an undirected tree": https://www.geeksforgeeks.org/longest-path-undirected-tree/
+    // Find the farthest node of the tree from the root 
     Node *src = find_farthest(*root, 0, map);
     // printf("Find DEST\n");
+    // Find the longest path from the farthest node
     Node *dest = find_farthest(src, 1, map);
     return dest->dis_from_root[1] - 1;
 }
