@@ -247,7 +247,7 @@ Final Exam
 
 ## I2P-2 - Yang
 
-> [HW1 12668 Text Editor - Linked List Version](./I2P_II_Yang/mid1_practice/12668/12668.c)
+> [HW1 12668 Text Editor - Linked List Version](./I2P_II_Yang/mid1_practice/12668/12668.c) Done
 
 > [HW1 12680 - Card Magic](./I2P_II_Yang/mid1_practice/12680/function.c) Done
 
