@@ -280,7 +280,11 @@ Final Exam
 
 > [HW1 13137 - binary search tree](./I2P_II_Kuo/mid1_practice/13137/function.c) Done
 
-> [HW1 13436 - Remove the leaves](./I2P_II_Kuo/mid1_practice/13436/13436.cpp) Done
+> [HW1 13436 - Remove the leaves](./I2P_II_Kuo/mid1_practice/13436/13436.cpp)
+
+> [Mid Practice 10966 - Infix to syntax tree](./I2P_II_Kuo/mid1_practice/10966/function.c)
+
+> [Mid Practice 10968 - Prefix to infix](./I2P_II_Kuo/mid1_practice/10968/function.c) Done
 
 ## GCC Usage
 
