@@ -9,11 +9,6 @@ typedef struct node{
     struct node *right, *left;
 }Node;
 
-typedef struct pair{
-    char op;
-    int x;
-}PairS;
-
 class Tree{
     private:
     int max_level;
