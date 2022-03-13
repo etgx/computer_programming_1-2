@@ -292,6 +292,8 @@ Final Exam
 
 > [Mid Practice 12193 - Binary Search Tree Operation](./I2P_II_Kuo/mid1_practice/12193/12193.c)
 
+> [Mid Practice 13433 - The password](./I2P_II_Kuo/mid1_practice/13433/13433.c)
+
 ## GCC Usage
 
 ### Installation

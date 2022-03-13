@@ -26,7 +26,7 @@ class Tree{
             *root = new_node;
             return level;
         }else{
-            if(x > (*root)->x){
+            if(x >= (*root)->x){
                 return adding_node(&((*root)->right), x, level + 1);
             }else{
                 return adding_node(&((*root)->left), x, level + 1);
@@ -151,9 +151,10 @@ int main(){
                     }
                     // printf("%.3f\n", tree.average_level(x));
                     avg_done_set.insert(x);
-                }else{
-                    printf("\n");
                 }
+                // else{
+                //     printf("\n");
+                // }
                 break;
             case 'S':
                 scanf("%d\n", &x);
@@ -161,25 +162,28 @@ int main(){
                 if(sum_done_set.find(x) == sum_done_set.end()){
                     printf("%d\n", tree.sum_level(x));
                     sum_done_set.insert(x);
-                }else{
-                    printf("\n");
                 }
+                // else{
+                //     printf("\n");
+                // }
                 break;
             case 'P':
                 if(!is_p_done){
                     tree.print_tree();
                     is_p_done = true;
-                }else{
-                    printf("\n");
                 }
+                // else{
+                //     printf("\n");
+                // }
                 break;
             case 'G':
                 if(!is_get_max_done){
                     printf("%d\n", tree.get_max());
                     is_get_max_done = true;
-                }else{
-                    printf("\n");
                 }
+                // else{
+                //     printf("\n");
+                // }
                 break;
         }
     }
