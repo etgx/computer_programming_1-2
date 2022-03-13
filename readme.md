@@ -286,6 +286,12 @@ Final Exam
 
 > [Mid Practice 10968 - Prefix to infix](./I2P_II_Kuo/mid1_practice/10968/function.c) Done
 
+> [Mid Practice 10972 - Remove unnecessary parentheses](./I2P_II_Kuo/mid1_practice/10972/10972.c)
+
+> [Mid Practice 12183 - Fairy Testing](./I2P_II_Kuo/mid1_practice/12183/12183.c)
+
+> [Mid Practice 12193 - Binary Search Tree Operation](./I2P_II_Kuo/mid1_practice/12193/12193.c)
+
 ## GCC Usage
 
 ### Installation
