@@ -290,9 +290,11 @@ Final Exam
 
 > [Mid Practice 12183 - Fairy Testing](./I2P_II_Kuo/mid1_practice/12183/12183.c)
 
-> [Mid Practice 12193 - Binary Search Tree Operation](./I2P_II_Kuo/mid1_practice/12193/12193.c)
+> [Mid Practice 12193 - Binary Search Tree Operation](./I2P_II_Kuo/mid1_practice/12193/12193.cpp) Done
 
-> [Mid Practice 13433 - The password](./I2P_II_Kuo/mid1_practice/13433/13433.c)
+> [Mid Practice 13433 - The password](./I2P_II_Kuo/mid1_practice/13433/13433.cpp) Done
+
+> [Mid Practice 13439 - Prefix Expression Evaluation](./I2P_II_Kuo/mid1_practice/13439/13439.cpp) Done
 
 ## GCC Usage
 

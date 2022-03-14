@@ -26,10 +26,12 @@ class Tree{
             *root = new_node;
             return level;
         }else{
-            if(x >= (*root)->x){
+            if(x > (*root)->x){
                 return adding_node(&((*root)->right), x, level + 1);
-            }else{
+            }else if(x < (*root)->x){
                 return adding_node(&((*root)->left), x, level + 1);
+            }else{
+                return 0;
             }
         }
     }
@@ -113,7 +115,7 @@ class Tree{
         int sum = 0, count = 0;
         averaging_level(this->root, &sum, &count, level);
         if(sum == 0 || level == 0) return (float)0;
-        return (float)sum / (float)level;
+        return (float)sum / (float)count;
     }
 };
 
