@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
-#include <unordered_set>
+#include <list>
 #include <unordered_map>
+#include <list>
 #include <queue>
 
 #define NULL_NODE -1
@@ -12,59 +13,79 @@ class Node{
     private:
 
     public:
-    int x = 0, depth = 0;
-    std::unordered_set<int> adjs;
+    int x = 0, depth = 0, adj_n = 0;
+    std::list<int> adjs;
 
     Node(){
         this->x = NULL_NODE;
-        this->depth = 0;
-        this->adjs = std::unordered_set<int>();
+        this->depth = this->adj_n = 0;
+        this->adjs = std::list<int>();
     }
 
     Node(int x){
         this->x = x;
-        this->depth = 0;
-        this->adjs = std::unordered_set<int>();
+        this->depth = this->adj_n = 0;
+        this->adjs = std::list<int>();
     }
 };
 
 class Tree{
     private:
     int N = 0, remain_nodes = 0, leaves_counter = 0;
-    std::unordered_map<int, Node> map;
+    // std::unordered_map<int, Node> map;
+    Node *map = NULL;
+
+    void set_null_node(int x){
+        if(!this->is_null_node(x)){
+            this->remain_nodes--;    
+        }
+        this->map[x].adjs.clear();
+        this->map[x].x = NULL_NODE;
+        this->map[x].depth = 0;
+    }
 
     bool is_null_node(int x){
         return this->map[x].x == NULL_NODE;
     }
 
     bool is_leaf(int a){
-        return this->map[a].adjs.size() <= 1;
+        // return this->map[a].adjs.size() <= 1;
+        return this->map[a].adj_n <= 1;
     }
 
     void remove_node(int x){
         Node *node = &(this->map[x]);
-        for(std::unordered_set<int>::iterator it = node->adjs.begin(); it !=  node->adjs.end(); it++){
-            this->map[*it].adjs.erase(x);
+        for(std::list<int>::iterator it = node->adjs.begin(); it !=  node->adjs.end(); it++){
+            // this->map[*it].adjs.erase(x);
+            this->map[*it].adj_n--;
         }
-        this->map.erase(x);
+        // this->map.erase(x);
+        this->set_null_node(x);
     }
 
     public:
     Tree(int N){
         this->N = N;
         this->remain_nodes = this->leaves_counter = 0;
-        this->map = std::unordered_map<int, Node>();
+        this->map = new Node[N+1];
+        // this->map = std::unordered_map<int, Node>();
     }
 
     ~Tree(){
         for(int i = 0; i <= this->N; i++){
             this->map[i].adjs.clear();
         }
+        // delete this->map;
+        delete []this->map;
     }
 
     void add_edge(int a, int b){
-        this->map[a].adjs.insert(b);
-        this->map[b].adjs.insert(a);
+        // this->map[a].adjs.insert(b);
+        this->map[a].adjs.push_back(b);
+        this->map[a].adj_n++;
+        // this->map[b].adjs.insert(a);
+        this->map[b].adjs.push_back(a);
+        this->map[b].adj_n++;
 
         if(this->is_null_node(a)){
             this->remain_nodes++;
@@ -81,11 +102,12 @@ class Tree{
         printf("Remain: %d\n", this->remain_nodes);
         printf("----------------------------\n");
         for(int i = 1; i <= N; i++){
-            if(this->map.find(i) == this->map.end()) continue;
+            // if(this->map.find(i) == this->map.end()) continue;
+            if(this->is_null_node(i)) continue;
 
             Node *node = &(this->map[i]);
             printf("[%d(%d)]:", i, node->depth);
-            for(std::unordered_set<int>::iterator it = node->adjs.begin(); it != node->adjs.end(); it++){
+            for(std::list<int>::iterator it = node->adjs.begin(); it != node->adjs.end(); it++){
                 printf(" %d", *it);
             }
             printf("\n");
@@ -106,7 +128,8 @@ class Tree{
     }
 
     int get_virtual_prune_remain(){
-        return this->map.size();
+        // return this->map.size();
+        return this->remain_nodes;
     }
 
     void virtual_prune(int K){
@@ -123,6 +146,8 @@ class Tree{
             }
         }
         // show_queue(leaf_queue);
+        // this->show(true);
+        // printf(">>>>>>>>>>>>>>>\n");
 
         // BFS
         Node *temp = NULL;
@@ -130,23 +155,26 @@ class Tree{
         for(; !leaf_queue.empty();){
             int front = leaf_queue.front();
             leaf_queue.pop();
-            if(this->map.find(front) == this->map.end()) continue;
+            // if(this->map.find(front) == this->map.end()) continue;
+            if(this->is_null_node(front)) continue;
 
             temp = &(map[front]);
             int adj_count = temp->adjs.size(), temp_x = temp->x, temp_depth = temp->depth;
-            std::unordered_set<int> temp_adjs(temp->adjs);
+            std::list<int> temp_adjs(temp->adjs);
 
             // printf("Iter: %d -> [%d]: %d\n", iter, temp_x, temp_depth);
             this->remove_node(temp_x);
             // show_queue(leaf_queue);
             
-            for(std::unordered_set<int>::iterator it = temp_adjs.begin(); it != temp_adjs.end(); it++){
+            for(std::list<int>::iterator it = temp_adjs.begin(); it != temp_adjs.end(); it++){
                 // Adjacents of temp
-                if(this->is_leaf(*it)){
+                // if(this->is_leaf(*it)){
+                if((!this->is_null_node(*it)) && this->is_leaf(*it)){
                     int max_depth = this->map[*it].depth > temp_depth? this->map[*it].depth : temp_depth;
+
                     // printf("[%d]: depth: %d | ADJS: ", *it, max_depth);
                     // // Adjacents of adjacents of temp
-                    // for(std::unordered_set<int>::iterator it_it = this->map[*it].adjs.begin(); it_it != this->map[*it].adjs.end(); it_it++){
+                    // for(std::list<int>::iterator it_it = this->map[*it].adjs.begin(); it_it != this->map[*it].adjs.end(); it_it++){
                     //     printf(" [%d]: %d,", *it_it, map[*it_it].depth);
                     // }
 

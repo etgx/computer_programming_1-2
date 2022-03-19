@@ -109,8 +109,10 @@ class TernaryTree{
 
     int testcase(){
         if(this->root == NULL) return 0;
+        if(this->bins == NULL){
+            this->bins = new int[this->max_id+1];
+        }
 
-        this->bins = new int[this->max_id+1];
         this->bins[0] = 0;
 
         for(int i = 1; i <= this->max_id; i++){
