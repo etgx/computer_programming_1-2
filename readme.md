@@ -255,6 +255,7 @@ Final Exam
 
 > [HW1 13134 - Band Ya Rou Ze](./I2P_II_Yang/mid1_practice/13134/13134.c)
 
+> [HW1 13149 - Ternary Expression Evaluation](./I2P_II_Yang/mid1_practice/13149/13149.cpp)
 
 ## I2P-2 - Kuo
 
