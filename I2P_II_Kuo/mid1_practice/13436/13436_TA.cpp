@@ -2,9 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
-#include <list>
-#include <unordered_map>
-#include <list>
+#include <vector>
 #include <queue>
 
 #define NULL_NODE -1
@@ -14,18 +12,19 @@ class Node{
 
     public:
     int x = 0, depth = 0, adj_n = 0;
-    std::list<int> adjs;
+    // @IMPORTANT: To improve the efficiency, use vector instead of list
+    std::vector<int> adjs;
 
     Node(){
         this->x = NULL_NODE;
         this->depth = this->adj_n = 0;
-        this->adjs = std::list<int>();
+        this->adjs = std::vector<int>();
     }
 
     Node(int x){
         this->x = x;
         this->depth = this->adj_n = 0;
-        this->adjs = std::list<int>();
+        this->adjs = std::vector<int>();
     }
 };
 
@@ -39,7 +38,8 @@ class Tree{
         if(!this->is_null_node(x)){
             this->remain_nodes--;    
         }
-        this->map[x].adjs.clear();
+        // @IMPORTANT: Becaus the tight bound of the time restriction, drop unimportant operations
+        // this->map[x].adjs.clear();
         this->map[x].x = NULL_NODE;
         this->map[x].depth = 0;
     }
@@ -55,7 +55,7 @@ class Tree{
 
     void remove_node(int x){
         Node *node = &(this->map[x]);
-        for(std::list<int>::iterator it = node->adjs.begin(); it !=  node->adjs.end(); it++){
+        for(std::vector<int>::iterator it = node->adjs.begin(); it !=  node->adjs.end(); it++){
             // this->map[*it].adjs.erase(x);
             this->map[*it].adj_n--;
         }
@@ -107,7 +107,7 @@ class Tree{
 
             Node *node = &(this->map[i]);
             printf("[%d(%d)]:", i, node->depth);
-            for(std::list<int>::iterator it = node->adjs.begin(); it != node->adjs.end(); it++){
+            for(std::vector<int>::iterator it = node->adjs.begin(); it != node->adjs.end(); it++){
                 printf(" %d", *it);
             }
             printf("\n");
@@ -138,7 +138,9 @@ class Tree{
         for(int i = 1; i < N + 1; i++){
             Node *temp = &(this->map[i]);
 
-            if(this->is_leaf(i) && (!this->is_null_node(i))){
+            // @IMPORTANT: Becaus the tight bound of the time restriction, drop unimportant operations
+            if(this->is_leaf(i)){
+            // if(this->is_leaf(i) && (!this->is_null_node(i))){
                 temp->depth = 1;
                 if(temp->depth <= K){
                     leaf_queue.push(i);
@@ -160,21 +162,22 @@ class Tree{
 
             temp = &(map[front]);
             int adj_count = temp->adjs.size(), temp_x = temp->x, temp_depth = temp->depth;
-            std::list<int> temp_adjs(temp->adjs);
+            std::vector<int> temp_adjs(temp->adjs);
 
             // printf("Iter: %d -> [%d]: %d\n", iter, temp_x, temp_depth);
             this->remove_node(temp_x);
             // show_queue(leaf_queue);
             
-            for(std::list<int>::iterator it = temp_adjs.begin(); it != temp_adjs.end(); it++){
+            for(std::vector<int>::iterator it = temp_adjs.begin(); it != temp_adjs.end(); it++){
                 // Adjacents of temp
-                // if(this->is_leaf(*it)){
-                if((!this->is_null_node(*it)) && this->is_leaf(*it)){
+                // @IMPORTANT: Becaus the tight bound of the time restriction, drop unimportant operations
+                if(this->is_leaf(*it)){
+                // if((!this->is_null_node(*it)) && this->is_leaf(*it)){
                     int max_depth = this->map[*it].depth > temp_depth? this->map[*it].depth : temp_depth;
 
                     // printf("[%d]: depth: %d | ADJS: ", *it, max_depth);
                     // // Adjacents of adjacents of temp
-                    // for(std::list<int>::iterator it_it = this->map[*it].adjs.begin(); it_it != this->map[*it].adjs.end(); it_it++){
+                    // for(std::vector<int>::iterator it_it = this->map[*it].adjs.begin(); it_it != this->map[*it].adjs.end(); it_it++){
                     //     printf(" [%d]: %d,", *it_it, map[*it_it].depth);
                     // }
 
@@ -184,9 +187,10 @@ class Tree{
                     if(this->map[*it].depth <= K){
                         // printf(" ENQUEUE\n");
                         leaf_queue.push(*it);
-                    }else{
-                        // printf("\n");
                     }
+                    // else{
+                    //     printf("\n");
+                    // }
                 }
             }
             // this->show(true);

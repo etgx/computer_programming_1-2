@@ -36,13 +36,13 @@
 //     return 0;
 // }
 
-// Method 2: Implement CIrcular Linked List
+// Method 2: Implement Doubly Linked List
 typedef struct node{
     int x;
     struct node *next, *prev;
 }Node;
 
-class CircularList{
+class DoublyList{
     private:
     Node *head = NULL, *tail = NULL, *temp = NULL;
 
@@ -66,13 +66,13 @@ class CircularList{
     }
 
     public:
-    CircularList(int i){
+    DoublyList(int i){
         this->init();
         this->insert_between(i, this->head, this->tail);
         this->temp = this->head->next;
     }
 
-    ~CircularList(){
+    ~DoublyList(){
         for(Node *temp = this->head->next; temp != this->tail;){
             Node *del_node = temp;
             temp = temp->next;
@@ -109,7 +109,7 @@ int main(){
     scanf("%d\n", &T);
     for(int i = 0; i < T; i++){
         scanf("%d\n", &N);
-        CircularList circular_list = CircularList(0);
+        DoublyList circular_list = DoublyList(0);
 
         for(int j = 1; j <= N; j++){
             char s_i = 0;

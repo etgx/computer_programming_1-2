@@ -43,14 +43,14 @@ class BooleanTree{
         Token t = this->prefix[this->building_idx];
         Node *new_node = create_node(t);
         if(t.type == FACTOR){
-            // IMPORTANT: If current node is an factor, only build the single node.
+            // @IMPORTANT: If current node is an factor, only build the single node.
             this->map[t.factor] = new_node;
         }
         new_node->parent = parent;
         this->building_idx++;
 
         if(t.type == OP){
-            // IMPORTANT: If current node is an operator, build the subtrees of it.
+            // @IMPORTANT: If current node is an operator, build the subtrees of it.
             new_node->left = this->building_tree(new_node);
             new_node->right = this->building_tree(new_node);
         }
@@ -63,7 +63,7 @@ class BooleanTree{
         this->printing_tree(root->left);
 
         if(root->token.type == OP){
-            // IMPORTANT: You should print the operators with SYMBOLS array.
+            // @IMPORTANT: You should print the operators with SYMBOLS array.
             printf("%c", this->SYMBOLS[root->token.op]);
         }else{
             printf("%d", root->token.factor);
@@ -124,7 +124,7 @@ class BooleanTree{
             // printf("Flipping\n");
             // this->show_val();
 
-            // IMPORTANT: Notice that you should add paraphrases in the statement or the statement would be wrong.
+            // @IMPORTANT: Notice that you should add paraphrases in the statement or the statement would be wrong.
             if((op == AND && (parent_val != (parent_left_val & parent_right_val))) ||
                (op == OR && (parent_val != (parent_left_val | parent_right_val)))){
                    this->flipping(node->parent);

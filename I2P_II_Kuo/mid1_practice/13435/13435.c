@@ -51,6 +51,7 @@
 // 2
 // 5
 
+// Method 1: Use handcraft queue and BFS
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -301,3 +302,118 @@ int main(){
         del_tree(map, N);
     }
 }
+
+// Method 2: Use std::vector and DFS
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <iostream>
+// #include <vector>
+
+// #define NULL_NODE -1
+// #define DIS_TYPE 2
+// #define DIS_INIT 1
+// #define DIS_NULL 0
+
+// using namespace std;
+
+// class Node{
+// private:
+
+// public:
+//     int x = 0;
+//     int dis[DIS_TYPE] = {DIS_NULL};
+//     std::vector<int> adjs;
+
+//     Node(){
+//         this->x = NULL_NODE;
+//         this->adjs = std::vector<int>();
+//     }
+
+//     Node(int x){
+//         this->x = x;
+//         this->adjs = std::vector<int>();
+//     }
+// };
+
+// class Tree{
+// private:
+//     int N = 0, map_size = 0;
+//     Node *map = NULL;
+
+//     Node* dfs(Node *root, int dis_type){
+//         if(root == NULL) return NULL;
+
+//         Node *furthest_node = root;
+//         int root_dis = root->dis[dis_type];
+//         for(std::vector<int>::iterator it = root->adjs.begin(); it != root->adjs.end(); it++){
+//             if(this->map[*it].dis[dis_type] != DIS_NULL) continue;
+
+//             this->map[*it].dis[dis_type] = root_dis + 1;
+//             Node *ret_node = this->dfs(&(this->map[*it]), dis_type);
+//             if(ret_node->dis[dis_type] > furthest_node->dis[dis_type]){
+//                 furthest_node = ret_node;
+//             }
+//         }
+//         return furthest_node;
+//     }
+// public:
+//     Tree(int N){
+//         this->N = N;
+//         this->map_size = N + 1;
+//         this->map = new Node[this->map_size];
+//     }
+
+//     ~Tree(){
+//         delete [](this->map);
+//     }
+
+//     void show(){
+//         printf("================\n");
+//         for(int i = 1; i < this->map_size; i++){
+//             Node node = this->map[i];
+//             printf("[%d]:", node.x);
+//             for(std::vector<int>::iterator it = node.adjs.begin(); it != node.adjs.end(); it++){
+//                 printf(" %d", *it);
+//             }
+//             printf("\n");
+//         }
+//         printf("================\n");
+//     }
+
+//     void add_edge(int a, int b){
+//         this->map[a].x = a;
+//         this->map[b].x = b;
+
+//         this->map[a].adjs.push_back(b);
+//         this->map[b].adjs.push_back(a);
+//     }
+
+//     int get_longest_path(){
+//         this->map[1].dis[0] = DIS_INIT;
+//         Node *farest_node = this->dfs(&(this->map[1]), 0);
+//         farest_node->dis[1] = DIS_INIT;
+//         return this->dfs(farest_node, 1)->dis[1] - 1;
+//     }
+// };
+
+// int main()
+// {
+//     // freopen("13435.txt", "r", stdin);
+//     int T = 0, N = 0;
+//     scanf("%d\n", &T);
+//     for(int i = 0; i < T; i++){
+//         scanf("%d\n", &N);
+
+//         int a = 0, b = 0;
+//         Tree tree(N);
+
+//         for(int j = 0; j < N - 1; j++){
+//             scanf("%d %d\n", &a, &b);
+//             tree.add_edge(a, b);
+//         }
+
+//         //tree.show();
+//         printf("%d\n", tree.get_longest_path());
+//     }
+//     return 0;
+// }

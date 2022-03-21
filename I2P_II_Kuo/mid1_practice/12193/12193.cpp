@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
-#include <set>
 
 typedef struct node{
     int level, x;
@@ -11,6 +10,7 @@ typedef struct node{
 
 class Tree{
     private:
+    const int ROOT_LEVEL = 1;
     int max_level;
     struct node* root;
 
@@ -31,6 +31,7 @@ class Tree{
             }else if(x < (*root)->x){
                 return adding_node(&((*root)->left), x, level + 1);
             }else{
+                // @IMPORTANT: Ignore the replicated number
                 return 0;
             }
         }
@@ -88,7 +89,7 @@ class Tree{
     }
 
     void add_node(int x){
-        int level = adding_node(&(this->root), x, 1);
+        int level = adding_node(&(this->root), x, this->ROOT_LEVEL);
         if(level > this->max_level){
             this->max_level = level;
         }
@@ -108,10 +109,14 @@ class Tree{
     }
 
     int sum_level(int level){
+        // @IMPORTANT: Check both case (1) Exceed the maximum level (2) Smaller than the root level 
+        if(level > this->max_level || level < this->ROOT_LEVEL) return 0;
         return summing_level(this->root, level);
     }
 
     float average_level(int level){
+        // @IMPORTANT: Check both case (1) Exceed the maximum level (2) Smaller than the root level 
+        if(level > this->max_level || level < this->ROOT_LEVEL) return 0;
         int sum = 0, count = 0;
         averaging_level(this->root, &sum, &count, level);
         if(sum == 0 || level == 0) return (float)0;
@@ -131,61 +136,32 @@ int main(){
     }
 
     scanf("%d", &M);
-
-    std::set<int> avg_done_set;
-    std::set<int> sum_done_set;
-    bool is_get_max_done = false, is_p_done = false;
     for(int i = 0; i < M; i++){
         char op[10] = {0};
         int x = 0;
+        float avg = 0;
 
         scanf("%s", op);
 
         switch(op[0]){
             case 'A':
                 scanf("%d\n", &x);
-                
-                if(avg_done_set.find(x) == avg_done_set.end()){
-                    if(x == 0 || x > tree.get_max()){
-                        printf("0\n");    
-                    }else{
-                        printf("%.3f\n", tree.average_level(x));
-                    }
-                    // printf("%.3f\n", tree.average_level(x));
-                    avg_done_set.insert(x);
+                avg = tree.average_level(x);
+                if(avg == 0){
+                    printf("0\n");    
+                }else{
+                    printf("%.3f\n", avg);
                 }
-                // else{
-                //     printf("\n");
-                // }
                 break;
             case 'S':
                 scanf("%d\n", &x);
-
-                if(sum_done_set.find(x) == sum_done_set.end()){
-                    printf("%d\n", tree.sum_level(x));
-                    sum_done_set.insert(x);
-                }
-                // else{
-                //     printf("\n");
-                // }
+                printf("%d\n", tree.sum_level(x));
                 break;
             case 'P':
-                if(!is_p_done){
-                    tree.print_tree();
-                    is_p_done = true;
-                }
-                // else{
-                //     printf("\n");
-                // }
+                tree.print_tree();
                 break;
             case 'G':
-                if(!is_get_max_done){
-                    printf("%d\n", tree.get_max());
-                    is_get_max_done = true;
-                }
-                // else{
-                //     printf("\n");
-                // }
+                printf("%d\n", tree.get_max());
                 break;
         }
     }
