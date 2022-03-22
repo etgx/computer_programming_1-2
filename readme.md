@@ -299,6 +299,8 @@ Final Exam
 
 > [Mid Practice 13439 - Prefix Expression Evaluation](./I2P_II_Kuo/mid1_practice/13439/13439.cpp) Done
 
+> [Mid Practice 13441 - Building Artificial Islands](./I2P_II_Kuo/mid1_practice/13441/13441.cpp) Done
+
 ## GCC Usage
 
 ### Installation

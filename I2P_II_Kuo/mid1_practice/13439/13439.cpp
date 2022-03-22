@@ -16,6 +16,7 @@ long long parse(){
     const char div[SYMBOL_LEN] = {'/', '\0'};
     const char mod[SYMBOL_LEN] = {'%', '\0'};
 
+    // @IMPORTANT: If you only compare the first character, it will cause runtime error
     if(strcmp(expr, plus) == 0){
         long long lhs = parse();
         long long rhs = parse();
