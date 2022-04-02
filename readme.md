@@ -76,6 +76,8 @@ Midterm
 
 > [11621 pE - Exquisite Substrings](./IPHTC1/mid_practice/11621/11621.c) Done
 
+> [12140 - HaSaKi~](./IPHTC1/mid_practice/12140/12140.c) Done
+
 Final Exam
 
 > [Week11 12143 AAAAAAAAAAAA~](./IPHTC1/final_practice/12143/function.c) Done
@@ -299,7 +301,15 @@ Final Exam
 
 > [Mid Practice 13439 - Prefix Expression Evaluation](./I2P_II_Kuo/mid1_practice/13439/13439.cpp) Done
 
-> [Mid Practice 13441 - Building Artificial Islands](./I2P_II_Kuo/mid1_practice/13441/13441.cpp) Done
+> [Mid Practice 13441 - Building Artificial Islands](./I2P_II_Kuo/mid1_practice/13441/13441.cpp)
+
+> [HW2 10993 - Polynomial class](./I2P_II_Kuo/mid2_practice/10993/function.cpp) Done
+
+> [HW2 13161 - Kuo Sends Names To Mars](./I2P_II_Kuo/mid2_practice/13161/13161.cpp) Done
+
+> [HW2 13163 - KYてぇてぇ — Birthday Present（class）](./I2P_II_Kuo/mid2_practice/13163/function.cpp) Done
+
+> [HW2 13443 - Recursive Acronym](./I2P_II_Kuo/mid2_practice/13443/13443.cpp) Done
 
 ## GCC Usage
 
