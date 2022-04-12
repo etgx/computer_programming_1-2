@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#define DEBUG 0
 
 // for lex
 #define MAXLEN 256
@@ -19,8 +20,8 @@ typedef enum {
 } TokenSet;
 
 TokenSet getToken(void);
-TokenSet curToken = UNKNOWN;
-char lexeme[MAXLEN];
+TokenSet curToken = UNKNOWN, prevToken = UNKNOWN;;
+char lexeme[MAXLEN] = {0}, prevLexeme[MAXLEN] = {0};
 
 // Test if a token matches the current token
 int match(TokenSet token);
@@ -118,22 +119,28 @@ TokenSet getToken(void)
         lexeme[i] = '\0';
         return INT;
     } else if (c == '+') {
+        // @MODIFIED:
         lexeme[0] = c;
         c = fgetc(stdin);
         if(c == '+'){
             lexeme[1] = c;
             lexeme[2] = '\0';
             return INCDEC;
+        }else{
+            ungetc(c, stdin);
         }
         lexeme[1] = '\0';
         return ADDSUB;
     }else if(c == '-'){
+        // @MODIFIED:
         lexeme[0] = c;
         c = fgetc(stdin);
         if(c == '-'){
             lexeme[1] = c;
             lexeme[2] = '\0';
             return INCDEC;
+        }else{
+            ungetc(c, stdin);
         }
         lexeme[1] = '\0';
         return ADDSUB;
@@ -154,7 +161,8 @@ TokenSet getToken(void)
         lexeme[1] = '\0';
         return MULDIV;
     } else if (c == '\n') {
-        lexeme[0] = '\0';
+        lexeme[0] = c;
+        lexeme[1] = '\0';
         return END;
     } else if (c == '=') {
         strcpy(lexeme, "=");
@@ -166,6 +174,7 @@ TokenSet getToken(void)
         strcpy(lexeme, ")");
         return RPAREN;
     } else if (isalpha(c) || c == '_') {
+        // @MODIFIED:
         // lexeme[0] = c;
         // lexeme[1] = '\0';
 
@@ -187,7 +196,21 @@ TokenSet getToken(void)
     }
 }
 
+// @MODIFIED:
+void unadvance(void) {
+    int symbolLen = strlen(lexeme);
+    for(int i = symbolLen - 1; i >= 0; i--){
+        ungetc(lexeme[i], stdin);
+    }
+    memcpy(lexeme, prevLexeme, MAXLEN * sizeof(char));
+    curToken = prevToken;
+    prevToken = UNKNOWN;
+}
+
 void advance(void) {
+    // @MODIFIED:
+    memcpy(prevLexeme, lexeme, MAXLEN * sizeof(char));
+    prevToken = curToken;
     curToken = getToken();
 }
 
@@ -223,12 +246,15 @@ int getval(char *str) {
         if (strcmp(str, table[i].name) == 0)
             return table[i].val;
 
-    if (sbcount >= TBLSIZE)
-        error(RUNOUT);
+    // @MODIFIED:
+    // if (sbcount >= TBLSIZE)
+    //     error(RUNOUT);
 
-    strcpy(table[sbcount].name, str);
-    table[sbcount].val = 0;
-    sbcount++;
+    // strcpy(table[sbcount].name, str);
+    // table[sbcount].val = 0;
+    // sbcount++;
+
+    error(NOTFOUND);
     return 0;
 }
 
@@ -269,6 +295,22 @@ void freeTree(BTNode *root) {
     }
 }
 
+void print_tri_node(const char *str, BTNode *root){
+    if(!DEBUG) return;
+    printf("%s", str);
+    if(root != NULL){
+        printf(" [%s] -", root->lexeme);
+        if(root->left != NULL){
+            printf(" L:[%s]", root->left->lexeme);
+        }
+        if(root->right != NULL){
+            printf(" R:[%s]", root->right->lexeme);
+        }
+    }
+    printf("\n");
+}
+
+
 // unary_expr := ADDSUB unary_expr | factor
 BTNode *unary_expr(){
     BTNode *retp = NULL;
@@ -276,9 +318,13 @@ BTNode *unary_expr(){
         retp = makeNode(ADDSUB, getLexeme());
         advance();
         retp->left = makeNode(INT, "0");
+        print_tri_node("Unary:", retp);
         retp->right = unary_expr();
+        print_tri_node("Unary_Expr: AddSub Unary_Expr", retp);
     }else{
+        // printf("Unary - Factor Lexeme: %s %d\n", getLexeme(), curToken);
         retp = factor();
+        print_tri_node("Unary_Expr: Factor", retp);
     }
     return retp;
 }
@@ -291,20 +337,27 @@ BTNode *muldiv_expr_tail(BTNode *left){
         advance();
         retp->left = left;
         retp->right = unary_expr();
+        print_tri_node("MulDiv_Expr_Tail: MULDIV Unary_Expr MulDiv_Expr_Tail", retp);
         BTNode *root = muldiv_expr_tail(retp);
-        if(root != NULL) return root;
+        // if(root != NULL) return root;
+        print_tri_node("Unary_Expr: Factor", retp);
+        return root;
+    }else{
+        return left;
     }
-    return retp;
+    // return retp;
 }
 
 // muldiv_expr := unary_expr muldiv_expr_tail
 BTNode *muldiv_expr(){
     BTNode *left = unary_expr();
-    BTNode *retp = muldiv_expr_tail(left);
-    if(retp == NULL){
-        return left;
-    }
-    return retp;
+    // BTNode *retp = muldiv_expr_tail(left);
+    // if(retp == NULL){
+    //     retp = left;
+    // }
+    // print_tri_node("MulDiv_Expr: AddSub_Expr MulDiv_Expr_Tail", retp);
+    // return retp;
+    return muldiv_expr_tail(left);
 }
 
 // addsub_expr_tail := ADDSUB muldiv_expr addsub_expr_tail | NiL
@@ -315,20 +368,25 @@ BTNode *addsub_expr_tail(BTNode *left){
         advance();
         retp->left = left;
         retp->right = muldiv_expr();
-        BTNode *root = addsub_expr_tail(retp);
-        if(root != NULL) return root;
+        // BTNode *root = addsub_expr_tail(retp);
+        // if(root != NULL) return root;
+        return addsub_expr_tail(retp);
+    }else{
+        return left;
     }
-    return retp;
+    // return retp;
 }
 
 // addsub_expr := muldiv_expr addsub_expr_tail
 BTNode *addsub_expr(){
     BTNode *left = muldiv_expr();
-    BTNode *retp = addsub_expr_tail(left);
-    if(retp == NULL){
-        return left;
-    }
-    return retp;
+    // BTNode *retp = addsub_expr_tail(left);
+    // if(retp == NULL){
+    //     retp = left;
+    // }
+    // print_tri_node("AddSub_Expr: MulDiv_Expr AddSub_Expr_Tail", retp);
+    // return retp;
+    return addsub_expr_tail(left);
 }
 
 // assign_expr := ID ASSIGN assign_expr | or_expr
@@ -342,17 +400,25 @@ BTNode *assign_expr(){
             advance();
             retp->left = left;
             retp->right = assign_expr();
+            print_tri_node("Assign_Expr: ID = Assign_Expr", retp);
+        }else{
+            unadvance();
+            retp = addsub_expr();
+            print_tri_node("Assign_Expr: AddSub_Expr", retp);
+            // printf("Enter Unary\n");
+            // retp = unary_expr();
+            // print_tri_node("Assign_Expr: Unary_Expr", retp);
         }
+    }else{
+        retp = addsub_expr();
+        print_tri_node("Assign_Expr: AddSub_Expr", retp);
+        // retp = unary_expr();
+        // print_tri_node("Assign_Expr: Unary_Expr", retp);
     }
-    retp = addsub_expr();
     return retp;
 }
 
-// factor := INT | ADDSUB INT |
-//		   	 ID  | ADDSUB ID  |
-//		   	 ID ASSIGN expr |
-//		   	 LPAREN expr RPAREN |
-//		   	 ADDSUB LPAREN expr RPAREN
+// factor := INT | ID | INCDEC ID | LPAREN assign_expr RPAREN
 BTNode *factor(void) {
     BTNode *retp = NULL, *left = NULL;
 
@@ -362,37 +428,6 @@ BTNode *factor(void) {
     } else if (match(ID)) {
         retp = makeNode(ID, getLexeme());
         advance();
-    // } else if (match(ID)) {
-    //     left = makeNode(ID, getLexeme());
-    //     advance();
-    //     if (!match(ASSIGN)) {
-    //         retp = left;
-    //     } else {
-    //         retp = makeNode(ASSIGN, getLexeme());
-    //         advance();
-    //         retp->left = left;
-    //         retp->right = expr();
-    //     }
-    // }else if (match(ADDSUB)) {
-    //     retp = makeNode(ADDSUB, getLexeme());
-    //     retp->left = makeNode(INT, "0");
-    //     advance();
-    //     if (match(INT)) {
-    //         retp->right = makeNode(INT, getLexeme());
-    //         advance();
-    //     } else if (match(ID)) {
-    //         retp->right = makeNode(ID, getLexeme());
-    //         advance();
-    //     } else if (match(LPAREN)) {
-    //         advance();
-    //         retp->right = expr();
-    //         if (match(RPAREN))
-    //             advance();
-    //         else
-    //             error(MISPAREN);
-    //     } else {
-    //         error(NOTNUMID);
-    //     }
     } else if (match(INCDEC)) {
         retp = makeNode(INCDEC, getLexeme());
         retp->left = NULL;
@@ -411,6 +446,7 @@ BTNode *factor(void) {
         else
             error(MISPAREN);
     } else {
+        printf("NOTNUMID: %s\n", getLexeme());
         error(NOTNUMID);
     }
     return retp;
@@ -458,7 +494,6 @@ BTNode *expr_tail(BTNode *left) {
     }
 }
 
-// statement := ENDFILE | END | expr END
 // statement := ENDFILE | END | assign_expr END
 void statement(void) {
     BTNode *retp = NULL;
@@ -540,6 +575,15 @@ int evaluateTree(BTNode *root) {
             case ASSIGN:
                 rv = evaluateTree(root->right);
                 retval = setval(root->left->lexeme, rv);
+                break;
+            // @MODIFIED:
+            case INCDEC:
+                if(strcmp(root->lexeme, "++") == 0) {
+                    rv = getval(root->right->lexeme) + 1;
+                }else if(strcmp(root->lexeme, "--") == 0) {
+                    rv = getval(root->right->lexeme) - 1;
+                }
+                retval = setval(root->right->lexeme, rv);
                 break;
             case ADDSUB:
             case MULDIV:
