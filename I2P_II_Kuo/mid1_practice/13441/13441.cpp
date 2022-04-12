@@ -11,6 +11,10 @@
 #define TRAVERSING 1
 #define TRAVERSED 2
 
+// #define UNKOWN_TYPE 0
+// #define LEAF_TYPE 1
+// #define SEC_ENABLE 
+
 class Edge{
     public:
     int dest = 0, weight = 0;
@@ -22,17 +26,20 @@ class Edge{
 
 class Node{
     public:
-    int x = 0, dia0 = 0, dia1 = 0, dis0 = 0, dis1 = 0, is_traversed = 0;
+    int x = 0, dia0 = 0, dia1 = 0, dis0 = 0, dis1 = 0, is_traversed = NOT_TRAVERSED;
+    bool sec_enable = true;
     std::vector<Edge> adj = std::vector<Edge>();
     Node(){
         this->x = this->dia0 = this->dia1 = this->dis0 = this->dis1 = 0;
         this->is_traversed = NOT_TRAVERSED;
+        this->sec_enable = true;
         this->adj = std::vector<Edge>();
     }
     Node(int x){
         this->x = x;
         this->dia0 = this->dia1 = this->dis0 = this->dis1 = this->is_traversed = 0;
         this->is_traversed = NOT_TRAVERSED;
+        this->sec_enable = true;
         this->adj = std::vector<Edge>();
     }
 };
@@ -76,8 +83,10 @@ class Tree{
         root->is_traversed = TRAVERSING;
         if(root->adj.size() <= 0){
             // Single node
+            root->sec_enable = false;
         }else if(root->adj.size() <= 1 && this->map[root->adj.at(0).dest].is_traversed != NOT_TRAVERSED){
             // Leaf
+            root->sec_enable = false;
         }else{
             for(std::vector<Edge>::iterator it = root->adj.begin(); it != root->adj.end(); it++){
                 Node &node = this->map[(*it).dest];
@@ -88,14 +97,16 @@ class Tree{
             }
 
             // Sort Distance
-            printf("[%d]: ", root->x);
+            printf("[%d]:", root->x);
             std::vector<std::pair<int, int>> dis_v(2, std::make_pair(-1, 0));
             for(std::vector<Edge>::iterator it = root->adj.begin(); it != root->adj.end(); it++){
                 int w_it = (*it).weight;
                 Node &node = this->map[(*it).dest];
                 if(node.is_traversed == TRAVERSED){
                     dis_v.push_back(std::make_pair(node.x, node.dis0 + w_it));
-                    dis_v.push_back(std::make_pair(node.x, node.dis1 + w_it));
+                    if(node.sec_enable || root->adj.size() >= 3){
+                        dis_v.push_back(std::make_pair(node.x, node.dis1 + w_it));
+                    }
                     printf(" %d(%d, %d)", node.x, node.dis0 + w_it, node.dis1 + w_it);
                 }
             }

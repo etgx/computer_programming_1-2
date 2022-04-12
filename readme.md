@@ -277,6 +277,10 @@ Final Exam
 
 > [Winter Vacation HW 12615 - Knight Search](./I2P_II_Kuo/mid1_practice/12615/12615.c) Done
 
+> [Lab0 10947 - delete linked list](./I2P_II_Kuo/mid1_practice/10947/function.c) Done
+
+> [Lab0 12602 - OuQ String](./I2P_II_Kuo/mid1_practice/12602/12602.c) Done
+
 > [HW1 13129 - prize!](./I2P_II_Kuo/mid1_practice/13129/function.c) Done
 
 > [HW1 13431 - Palindrome Linked List](./I2P_II_Kuo/mid1_practice/13431/function.c) Done
@@ -286,6 +290,10 @@ Final Exam
 > [HW1 13137 - binary search tree](./I2P_II_Kuo/mid1_practice/13137/function.c) Done
 
 > [HW1 13436 - Remove the leaves](./I2P_II_Kuo/mid1_practice/13436/13436.cpp) Done
+
+> [Lab1 13129 - prize!](./I2P_II_Kuo/mid1_practice/13129/function.c) Done
+
+> [Lab1 13436 - Remove the leaves](./I2P_II_Kuo/mid1_practice/13436/13436.cpp) Done
 
 > [Mid Practice 10966 - Infix to syntax tree](./I2P_II_Kuo/mid1_practice/10966/function.c) Done
 
@@ -301,7 +309,11 @@ Final Exam
 
 > [Mid Practice 13439 - Prefix Expression Evaluation](./I2P_II_Kuo/mid1_practice/13439/13439.cpp) Done
 
-> [Mid Practice 13441 - Building Artificial Islands](./I2P_II_Kuo/mid1_practice/13441/13441.cpp)
+> [Midterm1 - 13434 - The password - HARD]()
+
+> [Midterm1 13439 - Prefix Expression Evaluation](./I2P_II_Kuo/mid1_practice/13439/13439.cpp) Done
+
+> [Midterm1 13441 - Building Artificial Islands](./I2P_II_Kuo/mid1_practice/13441/13441.cpp)
 
 > [HW2 10993 - Polynomial class](./I2P_II_Kuo/mid2_practice/10993/function.cpp) Done
 
@@ -310,6 +322,12 @@ Final Exam
 > [HW2 13163 - KYてぇてぇ — Birthday Present（class）](./I2P_II_Kuo/mid2_practice/13163/function.cpp) Done
 
 > [HW2 13443 - Recursive Acronym](./I2P_II_Kuo/mid2_practice/13443/13443.cpp) Done
+
+> [Lab0 12604 - N-Queens M-Rooks Problem](./I2P_II_Kuo/mid1_practice/12604/12604.c) Done
+
+> [Lab2 13454 - Circular String](./I2P_II_Kuo/mid2_practice/13454/13454.cpp)
+
+> [Lab2 13472 - KYてぇてぇ — Birthday Present（class + reverse）](./I2P_II_Kuo/mid2_practice/13454/13454.cpp)
 
 ## GCC Usage
 
