@@ -3,7 +3,8 @@
 #include <string.h>
 #include <ctype.h>
 
-#define DEBUG 0
+#define DEBUG 1
+#define DEBUG_TRI_NODE 0
 
 // for lex
 #define MAXLEN 256
@@ -47,7 +48,7 @@ char *getLexeme(void);
 
 // Error types
 typedef enum {
-    UNDEFINED, MISPAREN, NOTID, NOTNUMID, NOTFOUND, RUNOUT, NOTLVAL, DIVZERO, SYNTAXERR
+    UNDEFINED, MISPAREN, NOTID, INVALIDIDHEAD, INVALIDID, NOTNUMID, NOTFOUND, RUNOUT, NOTLVAL, DIVZERO, SYNTAXERR
 } ErrorType;
 
 // Structure of the symbol table
@@ -296,7 +297,7 @@ void freeTree(BTNode *root) {
 }
 
 void print_tri_node(const char *str, BTNode *root){
-    if(!DEBUG) return;
+    if(!DEBUG_TRI_NODE) return;
     printf("%s", str);
     if(root != NULL){
         printf(" [%s] -", root->lexeme);
@@ -452,46 +453,114 @@ BTNode *factor(void) {
     return retp;
 }
 
-// term := factor term_tail
-BTNode *term(void) {
-    BTNode *node = factor();
-    return term_tail(node);
-}
+void semantic_check(BTNode *root){
+    if(root == NULL) return;
 
-// term_tail := MULDIV factor term_tail | NiL
-BTNode *term_tail(BTNode *left) {
-    BTNode *node = NULL;
-
-    if (match(MULDIV)) {
-        node = makeNode(MULDIV, getLexeme());
-        advance();
-        node->left = left;
-        node->right = factor();
-        return term_tail(node);
-    } else {
-        return left;
+    switch(root->data){
+        case(MULDIV):
+            if(strcmp(root->lexeme, "/") == 0 && root->right != NULL){
+                if(root->right->data == INT && atoi(root->right->lexeme) == 0){
+                    error(DIVZERO);
+                }
+            }
+            semantic_check(root->left);
+            semantic_check(root->right);
+        break;
+        case(ID):
+            if(!((root->lexeme[0] >= 'a' && root->lexeme[0] <= 'z') || 
+               (root->lexeme[0] >= 'A' && root->lexeme[0] <= 'Z') || 
+               (root->lexeme[0] == '_'))){
+                error(INVALIDIDHEAD);
+            }
+            for(int i = 0; i < MAXLEN; i++){
+                if(!((root->lexeme[0] >= '0' && root->lexeme[0] <= '9') || 
+                    (root->lexeme[0] >= 'a' && root->lexeme[0] <= 'z') || 
+                    (root->lexeme[0] >= 'A' && root->lexeme[0] <= 'Z') || 
+                    (root->lexeme[0] == '_'))){
+                    error(INVALIDID);
+                }
+            }
+            getval(root->lexeme);
+            semantic_check(root->left);
+            semantic_check(root->right);
+        break;
+        case(ASSIGN):
+            if(root->left == NULL || (root->left != NULL && root->left->data != ID)){
+                error(NOTID);
+            }
+            setval(root->left->lexeme, 0);
+            semantic_check(root->right);
+        break;
+        default:
+            semantic_check(root->left);
+            semantic_check(root->right);
+        break;
     }
 }
 
-// expr := term expr_tail
-BTNode *expr(void) {
-    BTNode *node = term();
-    return expr_tail(node);
+BTNode* parse(){
+    BTNode *retp = assign_expr();
+    if(match(END)) {
+        semantic_check(retp);
+    }else {
+        error(SYNTAXERR);
+    } 
+    return retp;
 }
 
-// expr_tail := ADDSUB term expr_tail | NiL
-BTNode *expr_tail(BTNode *left) {
-    BTNode *node = NULL;
+void AST_print(BTNode *head){
+    const int MAX_LENGTH = 256;
+    static char indent_str[MAX_LENGTH] = "";
+	static int indent = 0;
+	char *indent_now = indent_str + indent;
+	const static char KindName[][20] = {
+        "UNKNOWN", "END", "ENDFILE", "INT", "ID", "ADDSUB", "MULDIV", "AND", "OR", "XOR", "INCDEC", "ASSIGN", "LPAREN", "RPAREN"
+	};
+	const static char format[] = "%s, <%s>\n";
+	const static char format_str[] = "%s, <%s = %s>\n";
+	const static char format_val[] = "%s, <%s = %d>\n";
+	if (head == NULL) return;
+	indent_str[indent - 1] = '-';
+	printf("%s", indent_str);
+	indent_str[indent - 1] = ' ';
+	if (indent_str[indent - 2] == '`')
+		indent_str[indent - 2] = ' ';
+	switch (head->data) {
+        case UNKNOWN:
+        case END:
+		case ASSIGN:
+		case ADDSUB:
+		case MULDIV:
+		case AND:
+		case OR:
+        case XOR:
+		case INCDEC:
+		case LPAREN:
+		case RPAREN:
+			printf(format, KindName[head->data], (char*)&(head->lexeme));
+			break;
+		case ID:
+			printf(format_str, KindName[head->data], "name", (char*)&(head->lexeme));
+			break;
+		case INT:
+			printf(format_val, KindName[head->data], "value", atoi(head->lexeme));
+			break;
+		default:
+			puts("=== unknown AST type ===");
+	}
+	indent += 2;
+	strcpy(indent_now, "| ");
+	AST_print(head->left);
+	strcpy(indent_now, "` ");
+	AST_print(head->right);
+	indent -= 2;
+	(*indent_now) = '\0';
+}
 
-    if (match(ADDSUB)) {
-        node = makeNode(ADDSUB, getLexeme());
-        advance();
-        node->left = left;
-        node->right = term();
-        return expr_tail(node);
-    } else {
-        return left;
-    }
+void visualize_AST(BTNode *root){
+    printf("\n====================\n");
+    AST_print(root);
+    printf("\n====================\n");
 }
 
 // statement := ENDFILE | END | assign_expr END
@@ -504,12 +573,14 @@ void statement(void) {
         printf(">> ");
         advance();
     } else {
-        // retp = expr();
-        retp = assign_expr();
+        retp = parse();
         if (match(END)) {
             printf("%d\n", evaluateTree(retp));
             printf("Prefix traversal: ");
             printPrefix(retp);
+            if(DEBUG){
+                visualize_AST(retp);
+            }
             printf("\n");
             freeTree(retp);
             printf(">> ");
@@ -529,6 +600,12 @@ void err(ErrorType errorNum) {
                 break;
             case NOTID:
                 fprintf(stderr, "identifier expected\n");
+                break;
+            case INVALIDIDHEAD:
+                fprintf(stderr, "the head of the identifier should be a-z, A-Z, or _\n");
+                break;
+            case INVALIDID:
+                fprintf(stderr, "invalid identifier\n");
                 break;
             case NOTNUMID:
                 fprintf(stderr, "number or identifier expected\n");
