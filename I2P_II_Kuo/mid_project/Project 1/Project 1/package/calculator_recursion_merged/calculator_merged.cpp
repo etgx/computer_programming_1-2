@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <vector>
+#include <string>
+#include <iostream>
 
 #define DEBUG 1
 #define DEBUG_TRI_NODE 0
@@ -48,7 +51,7 @@ char *getLexeme(void);
 
 // Error types
 typedef enum {
-    UNDEFINED, MISPAREN, NOTID, INVALIDIDHEAD, INVALIDID, NOTNUMID, NOTFOUND, RUNOUT, NOTLVAL, DIVZERO, SYNTAXERR
+    UNDEFINED, MISPAREN, NOTID, INVALIDIDHEAD, INVALIDID, NOTNUMID, NOTFOUND, RUNOUT, NOTLVAL, DIVZERO, SYNTAXERR, MEMNOTSET
 } ErrorType;
 
 // Structure of the symbol table
@@ -625,6 +628,9 @@ void err(ErrorType errorNum) {
             case SYNTAXERR:
                 fprintf(stderr, "syntax error\n");
                 break;
+            case MEMNOTSET:
+                fprintf(stderr, "the memory slot hasn't been setted\n");
+                break;
             default:
                 fprintf(stderr, "undefined error\n");
                 break;
@@ -637,6 +643,419 @@ void err(ErrorType errorNum) {
 /*============================================================================================
 codeGen implementation
 ============================================================================================*/
+
+typedef enum{INVALID_MOVE, INVALID_OP_CODE, STACK_ERR, MACHINE_CODE_ERR}CODEGEN_ERR;
+
+#define code_gen_error(err_code, fmt, ...) \
+printf("**********************************\n"); \
+fprintf(stdout, "error() called at %s:%d: ", __FILE__, __LINE__); \
+printf(fmt, __VA_ARGS__); \
+printf("\n"); \
+code_gen_err_code(err_code); \
+printf("**********************************\n");
+
+void code_gen_err_code(CODEGEN_ERR err_code){
+    if (PRINTERR) {
+        fprintf(stdout, "error: ");
+        switch(err_code){
+            case INVALID_MOVE:
+                fprintf(stdout, "invalid move instruction\n");
+                break;
+            case INVALID_OP_CODE:
+                fprintf(stdout, "invalid ISA op-code\n");
+                break;
+            case STACK_ERR:
+                fprintf(stdout, "invalid stack operation\n");
+                break;
+            case MACHINE_CODE_ERR:
+                fprintf(stdout, "invalid machine code\n");
+                break;
+            default:
+                fprintf(stdout, "undefined error\n");
+                break;
+        }
+    }
+}
+
+class Register{
+    public:
+    int id = -1;
+    Register(){this->id = -1;}
+    Register(int id){this->id = id;}
+};
+
+class Memory{
+    public:
+    int id = -1;
+    Memory(){this->id = -1;}
+    Memory(int id){this->id = id;}
+};
+
+class Constant{
+    public:
+    int id = -1;
+    Constant(){this->id = -1;}
+    Constant(int id){this->id = id;}
+};
+
+class Space{
+    public:
+    typedef enum{REG, MEM, CONST, UNDEFINED} TYPE;
+
+    Space::TYPE type = Space::TYPE::UNDEFINED;
+    int id = 0;
+    Register reg;
+    Memory mem;
+    Constant constant;
+
+    Space(Register x){
+        this->type = Space::TYPE::REG;
+        this->id = x.id;
+        this->reg = x;
+    }
+
+    Space(Memory x){
+        this->type = Space::TYPE::MEM;
+        this->id = x.id;
+        this->mem = x;
+    }
+    Space(Constant x){
+        this->type = Space::TYPE::CONST;
+        this->id = x.id;
+        this->constant = x;
+    }
+
+    Space(Space::TYPE type, int id){
+        this->type = Space::TYPE::REG;
+        this->id = id;
+    }
+};
+
+class ISA{
+    private:
+    std::vector<std::string> instructions;
+
+    std::string arithm_code(const char *op, const Register reg0, const Register reg1){
+        return std::string(op) + std::string(" ") + std::to_string(reg0.id) + std::string(", ") + std::to_string(reg0.id);
+    }
+
+    public:
+    typedef enum{ADD, SUB, MUL, DIV, AND, OR, XOR, EX_SUCC, EX_ERR} OP;
+
+    ISA(){this->instructions = std::vector<std::string>();}
+
+    void move(Space dest, Space src){
+        std::string src_str, dest_str;
+        std::string id_str = std::to_string(dest.id), 
+                    reg_prefix = std::string("r"), 
+                    mem_prefix = std::string("["), 
+                    mem_postfix = std::string("]");
+
+        if(dest.type == Space::TYPE::REG){
+            dest_str = reg_prefix + std::to_string(dest.id);
+            switch(src.type){
+                case Space::TYPE::REG:
+                    src_str = std::string("r") + std::to_string(src.id);
+                break;
+                case Space::TYPE::MEM:
+                    src_str = mem_prefix + std::to_string(src.id) + mem_postfix;
+                break;
+                case Space::TYPE::CONST:
+                    src_str = std::to_string(src.id);
+                break;
+                default:
+                    code_gen_error(INVALID_MOVE, "invalid sourece of move: '%d'", src.type);
+                break;
+            }
+        }else if(dest.type == Space::TYPE::MEM){
+            dest_str = mem_prefix + std::to_string(dest.id) + mem_postfix;
+            switch(src.type){
+                case Space::TYPE::REG:
+                    src_str = std::string("r") + std::to_string(src.id);
+                break;
+                default:
+                    code_gen_error(INVALID_MOVE, "invalid sourece of move: '%d'", src.type);
+                break;
+            }
+        }else{
+            code_gen_error(INVALID_MOVE, "invalid destination of move: '%d'", dest.type);
+        }
+        this->instructions.push_back(std::string("MOV ") + dest_str + std::string(", ") + src_str);
+    }
+
+    void arithmetic(ISA::OP op, Register reg0, Register reg1){
+        std::string instr;
+        switch(op){
+            case ADD:
+                instr = this->arithm_code("ADD", reg0, reg1);
+                break;
+            case SUB:
+                instr = this->arithm_code("SUB", reg0, reg1);
+                break;
+            case MUL:
+                instr = this->arithm_code("MUL", reg0, reg1);
+                break;
+            case DIV:
+                instr = this->arithm_code("DIV", reg0, reg1);
+                break;
+            case AND:
+                instr = this->arithm_code("AND", reg0, reg1);
+                break;
+            case OR:
+                instr = this->arithm_code("OR", reg0, reg1);
+                break;
+            case XOR:
+                instr = this->arithm_code("XOR", reg0, reg1);
+                break;
+            default:
+                code_gen_error(INVALID_OP_CODE, "invalid arithmetic code: '%d'", op);
+                break;
+        }
+        this->instructions.push_back(instr);
+    }
+
+    void exit(ISA::OP op){
+        std::string instr;
+        switch (op){
+        case EX_SUCC:
+            instr = std::string("EXIT 0");
+            break;
+        case EX_ERR:
+            instr = std::string("EXIT 1");
+            break;
+        default:
+            code_gen_error(INVALID_OP_CODE, "invalid exit code: '%d'", op);
+            break;
+        }
+        this->instructions.push_back(instr);
+    }
+
+    void print_instrs(){
+        for(int i = 0; i < this->instructions.size(); i++){
+            // printf("%s\n", this->instructions.at(i));
+            std::cout << this->instructions.at(i) << std::endl;
+        }
+    }
+};
+
+// class MemorySlot{
+//     private:
+//     char symbol[MAXLEN] = {0};
+//     int val = 0;
+//     bool is_used = false;
+
+//     public:
+//     MemorySlot(){
+//         memset(this->symbol, 0, sizeof(char) * MAXLEN);
+//         this->val = 0;
+//         this->is_used = false;
+//     }
+
+//     MemorySlot(char *symbol, int val){
+//         strcpy(this->symbol, symbol);
+//         this->val = val;
+//         this->is_used = false;
+//     }
+
+//     bool is_match(char *symbol){
+//         return strcmp(this->symbol, symbol) == 0;
+//     }
+
+//     int get_val(){
+//         if(this->is_used) return this->val;
+//     }
+
+//     void set_val(int val){
+//         this->val = val;
+//     }
+
+//     bool get_is_used(){
+//         return this->is_used;
+//     }
+
+//     char* get_symbol(){
+//         return this->symbol;
+//     }
+// };
+
+// class Memory{
+//     private:
+//     int mem_size = 0, used_size = 0;
+//     MemorySlot *memory = NULL;
+//     public:
+//     Memory(int size){
+//         this->mem_size = size;
+//         this->used_size = 0;
+//         this->memory = new MemorySlot[this->mem_size];
+//     }
+
+//     int get_val(int addr){
+//         return this->memory[addr].get_val();
+//     }
+
+//     int get_val(char *symbol){
+//         for(int i = 0; i < this->used_size; i++){
+//             if(this->memory[i].is_match(symbol)){
+//                 return this->memory[i].get_val();
+//             }
+//         }
+//         error(MEMNOTSET);
+//     }
+
+//     void set_val(int addr, int val){
+//         if(this->memory[addr].get_is_used()){
+//             this->memory[addr].set_val(val);
+//         }
+//         error(MEMNOTSET);
+//     }
+
+//     void set_val(char *symbol, int val){
+//         for(int i = 0; i < this->mem_size; i++){
+//             if(this->memory[i].is_match(symbol)){
+//                 this->memory[i].set_val(val);
+//                 return;
+//             }
+//         }
+//         strcpy(this->memory[this->used_size].get_symbol(), symbol);
+//         this->memory[this->used_size].set_val(val);
+//         this->used_size++;
+//     }
+// };
+
+class VirtualStack{
+    private:
+    int reg_start = -1, reg_end = -1, mem_start = -1;
+    int reg_stack_size = 0;
+    int reg_stack_ptr = -1, mem_stack_ptr = -1, current_stack_size = 0;
+
+    Register reg_push(){
+        Register res = Register(this->reg_start - this->current_stack_size);
+        this->current_stack_size++;
+        return res;
+    }
+
+    Memory mem_push(){
+        Memory res = Memory(this->mem_start - (this->current_stack_size - this->reg_stack_size));
+        this->current_stack_size++;
+        return res;
+    }
+
+    Register reg_pop(){
+        Register res = Register(this->reg_start - this->current_stack_size + 1);
+        this->current_stack_size--;
+        return res;
+    }
+
+    Memory mem_pop(){
+        Memory res = Memory(this->mem_start - (this->current_stack_size - this->reg_stack_size) + 1);
+        this->current_stack_size--;
+        return res;
+    }
+
+    public:
+    VirtualStack(){
+        // the stack grows from high address to low address
+        this->reg_start = -1;
+        this->reg_end = -1;
+        this->mem_start = -1;
+
+        this->reg_stack_ptr = -1;
+        this->mem_stack_ptr = -1;
+
+        this->reg_stack_size = 0;
+        this->current_stack_size = 0;
+    }
+
+    VirtualStack(int reg_start, int reg_end, int mem_start){
+        // the stack grows from high address to low address
+        this->reg_start = reg_start;
+        this->reg_end = reg_end;
+        this->mem_start = mem_start;
+
+        this->reg_stack_ptr = reg_start;
+        this->mem_stack_ptr = mem_start;
+
+        this->reg_stack_size = reg_start - reg_end + 1;
+        this->current_stack_size = 0;
+    }
+
+    Space push(){
+        if(this->current_stack_size < this->reg_stack_size){
+            return Space(this->reg_push());
+        }
+        return Space(this->mem_push());
+    }
+
+    Space pop(){
+        if(this->current_stack_size <= 0){
+            code_gen_error(STACK_ERR, "invalid pop stack with stack size '%d' <= 0", this->current_stack_size);
+            return Space(Space::REG, -1);
+        }else if(this->current_stack_size <= this->reg_stack_size){
+            return Space(this->reg_pop());
+        }
+        return Space(this->mem_pop());
+    }
+};
+
+class MachineCode{
+    public:
+    VirtualStack vstack;
+    ISA isa;
+
+    const Register TARGET_DEST_REG = Register(0);
+    const Register TARGET_SRC_REG = Register(1);
+
+    MachineCode(){
+        this->vstack = VirtualStack();
+        this->isa = ISA();
+    }
+    MachineCode(int reg_start, int reg_end, int mem_start){
+        this->vstack = VirtualStack(reg_start, reg_end, mem_start);
+        this->isa = ISA();
+    }
+
+    void push(Space src){
+        Space push_space = this->vstack.push();
+        Space dest = push_space;
+        // @TODO: Adapt to various stack push
+        if(push_space.type == Space::TYPE::REG){
+
+        }
+
+        if(src.type == Space::TYPE::CONST){
+            // isa.move();
+        }else if(src.type == Space::TYPE::REG){
+
+        }else if(src.type == Space::TYPE::MEM){
+
+        }
+    }
+
+    void arithmetic(ISA::OP op){
+        Space src = this->vstack.pop();
+        Space dest = this->vstack.pop();
+        Space push_space = this->vstack.push();
+
+        if(dest.type == Space::REG && src.type == Space::REG){
+            isa.arithmetic(op, dest.reg, src.reg);
+        }else if(dest.type == Space::MEM && src.type == Space::MEM){
+            isa.move(this->TARGET_DEST_REG, dest);
+            isa.move(this->TARGET_SRC_REG, src);
+            isa.arithmetic(op, this->TARGET_DEST_REG, this->TARGET_SRC_REG);
+            isa.move(push_space, this->TARGET_DEST_REG);
+        }else if(dest.type == Space::REG && src.type == Space::MEM){
+            isa.move(this->TARGET_SRC_REG, src);
+            isa.arithmetic(op, this->TARGET_DEST_REG, this->TARGET_SRC_REG);
+            // isa.move(push_space, this->TARGET_DEST_REG);
+        }else if(dest.type == Space::MEM && src.type == Space::REG){
+            isa.move(this->TARGET_DEST_REG, dest);
+            isa.arithmetic(op, this->TARGET_DEST_REG, this->TARGET_SRC_REG);
+            isa.move(push_space, this->TARGET_DEST_REG);
+        }else{
+            code_gen_error(MACHINE_CODE_ERR, "invalid arithmetic destination('%d') type or source('%d')", dest.type, src.type);
+        }
+    }
+};
 
 int evaluateTree(BTNode *root) {
     int retval = 0, lv = 0, rv = 0;
@@ -692,7 +1111,6 @@ void printPrefix(BTNode *root) {
         printPrefix(root->right);
     }
 }
-
 
 /*============================================================================================
 main
