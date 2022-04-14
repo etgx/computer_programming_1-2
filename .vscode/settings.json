@@ -78,4 +78,5 @@
         "variant": "cpp",
         "function.h": "c"
     },
+    "C_Cpp.errorSquiggles": "Enabled",
 }

@@ -168,7 +168,7 @@ BTNode *expr_tail(BTNode *left) {
 }
 
 // statement := ENDFILE | END | expr END
-void statement(void) {
+BTNode* statement(void) {
     BTNode *retp = NULL;
 
     if (match(ENDFILE)) {

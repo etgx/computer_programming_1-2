@@ -87,7 +87,7 @@ BTNode *term(void);
 BTNode *term_tail(BTNode *left);
 BTNode *expr(void);
 BTNode *expr_tail(BTNode *left);
-void statement(void);
+BTNode *statement(void);
 // Print error message and exit the program
 void err(ErrorType errorNum);
 
@@ -561,37 +561,28 @@ void AST_print(BTNode *head){
 }
 
 void visualize_AST(BTNode *root){
-    printf("\n====================\n");
+    printf("\n====================\nAST\n");
     AST_print(root);
     printf("\n====================\n");
 }
 
 // statement := ENDFILE | END | assign_expr END
-void statement(void) {
+BTNode* statement(void) {
     BTNode *retp = NULL;
 
     if (match(ENDFILE)) {
         exit(0);
     } else if (match(END)) {
-        printf(">> ");
         advance();
     } else {
         retp = parse();
         if (match(END)) {
-            printf("%d\n", evaluateTree(retp));
-            printf("Prefix traversal: ");
-            printPrefix(retp);
-            if(DEBUG){
-                visualize_AST(retp);
-            }
-            printf("\n");
-            freeTree(retp);
-            printf(">> ");
             advance();
         } else {
             error(SYNTAXERR);
         }
     }
+    return retp;
 }
 
 void err(ErrorType errorNum) {
@@ -644,7 +635,7 @@ void err(ErrorType errorNum) {
 codeGen implementation
 ============================================================================================*/
 
-typedef enum{INVALID_MOVE, INVALID_OP_CODE, STACK_ERR, MACHINE_CODE_ERR}CODEGEN_ERR;
+typedef enum{INVALID_MOVE, ISA_ERR, SPACE_ERR, STACK_ERR, MACHINE_CODE_ERR}CODEGEN_ERR;
 
 #define code_gen_error(err_code, fmt, ...) \
 printf("**********************************\n"); \
@@ -661,8 +652,11 @@ void code_gen_err_code(CODEGEN_ERR err_code){
             case INVALID_MOVE:
                 fprintf(stdout, "invalid move instruction\n");
                 break;
-            case INVALID_OP_CODE:
-                fprintf(stdout, "invalid ISA op-code\n");
+            case ISA_ERR:
+                fprintf(stdout, "invalid ISA operation\n");
+                break;
+            case SPACE_ERR:
+                fprintf(stdout, "invalid space operation\n");
                 break;
             case STACK_ERR:
                 fprintf(stdout, "invalid stack operation\n");
@@ -686,9 +680,15 @@ class Register{
 
 class Memory{
     public:
-    int id = -1;
-    Memory(){this->id = -1;}
-    Memory(int id){this->id = id;}
+    int id = -1, addr = -1;
+    Memory(){
+        this->id = -1;
+        this->addr = -1;
+    }
+    Memory(int id){
+        this->id = id;
+        this->addr = id * 4;
+    }
 };
 
 class Constant{
@@ -703,7 +703,7 @@ class Space{
     typedef enum{REG, MEM, CONST, UNDEFINED} TYPE;
 
     Space::TYPE type = Space::TYPE::UNDEFINED;
-    int id = 0;
+    int id = -1, addr = -1;
     Register reg;
     Memory mem;
     Constant constant;
@@ -717,6 +717,7 @@ class Space{
     Space(Memory x){
         this->type = Space::TYPE::MEM;
         this->id = x.id;
+        this->addr = x.addr;
         this->mem = x;
     }
     Space(Constant x){
@@ -726,61 +727,94 @@ class Space{
     }
 
     Space(Space::TYPE type, int id){
-        this->type = Space::TYPE::REG;
+        this->type = type;
         this->id = id;
+        switch(type){
+            case Space::TYPE::REG:
+                this->reg = Register(id);
+            break;
+            case Space::TYPE::MEM:
+                this->mem = Memory(id);
+            break;
+            case Space::TYPE::CONST:
+                this->constant = Constant(id);
+            break;
+            default:
+                code_gen_error(SPACE_ERR, "invalid constructor argument type '%d' for space", type);
+            break;
+        }
     }
 };
 
 class ISA{
     private:
     std::vector<std::string> instructions;
+    const std::string reg_prefix = std::string("r"), mem_prefix = std::string("["), mem_postfix = std::string("]"), mid = std::string(", ");
+
+    std::string reg_code(const Register reg){
+        return this->reg_prefix + std::to_string(reg.id);
+    }
+
+    std::string mem_code(const Memory mem){
+        return this->mem_prefix + std::to_string(mem.addr) + this->mem_postfix;
+    }
+
+    std::string const_code(const Constant constant){
+        return std::to_string(constant.id);
+    }
+
+    std::string unit_code(const Space space){
+        switch(space.type){
+            case Space::TYPE::REG:
+                return this->reg_code(space.reg);
+            break;
+            case Space::TYPE::MEM:
+                return this->mem_code(space.mem);
+            break;
+            case Space::TYPE::CONST:
+                return this->const_code(space.constant);
+            break;
+            default:
+                code_gen_error(ISA_ERR, "invalid space type: '%d'", space.type);
+                return this->const_code(Constant(-1));
+            break;
+        }
+    }
 
     std::string arithm_code(const char *op, const Register reg0, const Register reg1){
         return std::string(op) + std::string(" ") + std::to_string(reg0.id) + std::string(", ") + std::to_string(reg0.id);
     }
 
+    std::string move_code(const Space space0, const Space space1){
+        return std::string("MOV ") + this->unit_code(space0) + std::string(", ") + this->unit_code(space1);
+    }
+
+    void append_instruction(std::string instr){
+        std::cout << instr << std::endl;
+        this->instructions.push_back(instr);
+    }
+
     public:
     typedef enum{ADD, SUB, MUL, DIV, AND, OR, XOR, EX_SUCC, EX_ERR} OP;
 
-    ISA(){this->instructions = std::vector<std::string>();}
+    ISA(){
+        this->instructions = std::vector<std::string>();
+    }
 
-    void move(Space dest, Space src){
-        std::string src_str, dest_str;
-        std::string id_str = std::to_string(dest.id), 
-                    reg_prefix = std::string("r"), 
-                    mem_prefix = std::string("["), 
-                    mem_postfix = std::string("]");
+    void move(Register dest, Register src){
+        this->append_instruction(this->move_code(Space(dest), Space(src)));
+    }
 
-        if(dest.type == Space::TYPE::REG){
-            dest_str = reg_prefix + std::to_string(dest.id);
-            switch(src.type){
-                case Space::TYPE::REG:
-                    src_str = std::string("r") + std::to_string(src.id);
-                break;
-                case Space::TYPE::MEM:
-                    src_str = mem_prefix + std::to_string(src.id) + mem_postfix;
-                break;
-                case Space::TYPE::CONST:
-                    src_str = std::to_string(src.id);
-                break;
-                default:
-                    code_gen_error(INVALID_MOVE, "invalid sourece of move: '%d'", src.type);
-                break;
-            }
-        }else if(dest.type == Space::TYPE::MEM){
-            dest_str = mem_prefix + std::to_string(dest.id) + mem_postfix;
-            switch(src.type){
-                case Space::TYPE::REG:
-                    src_str = std::string("r") + std::to_string(src.id);
-                break;
-                default:
-                    code_gen_error(INVALID_MOVE, "invalid sourece of move: '%d'", src.type);
-                break;
-            }
-        }else{
-            code_gen_error(INVALID_MOVE, "invalid destination of move: '%d'", dest.type);
-        }
-        this->instructions.push_back(std::string("MOV ") + dest_str + std::string(", ") + src_str);
+    void move(Register dest, Constant src){
+        this->append_instruction(this->move_code(Space(dest), Space(src)));
+    }
+
+    void move(Register dest, Memory src){
+        this->append_instruction(this->move_code(Space(dest), Space(src)));
+    }
+
+    void move(Memory dest, Register src){
+        this->append_instruction(this->move_code(Space(dest), Space(src)));
     }
 
     void arithmetic(ISA::OP op, Register reg0, Register reg1){
@@ -808,10 +842,10 @@ class ISA{
                 instr = this->arithm_code("XOR", reg0, reg1);
                 break;
             default:
-                code_gen_error(INVALID_OP_CODE, "invalid arithmetic code: '%d'", op);
+                code_gen_error(ISA_ERR, "invalid arithmetic code: '%d'", op);
                 break;
         }
-        this->instructions.push_back(instr);
+        this->append_instruction(instr);
     }
 
     void exit(ISA::OP op){
@@ -824,10 +858,10 @@ class ISA{
             instr = std::string("EXIT 1");
             break;
         default:
-            code_gen_error(INVALID_OP_CODE, "invalid exit code: '%d'", op);
+            code_gen_error(ISA_ERR, "invalid exit code: '%d'", op);
             break;
         }
-        this->instructions.push_back(instr);
+        this->append_instruction(instr);
     }
 
     void print_instrs(){
@@ -837,90 +871,6 @@ class ISA{
         }
     }
 };
-
-// class MemorySlot{
-//     private:
-//     char symbol[MAXLEN] = {0};
-//     int val = 0;
-//     bool is_used = false;
-
-//     public:
-//     MemorySlot(){
-//         memset(this->symbol, 0, sizeof(char) * MAXLEN);
-//         this->val = 0;
-//         this->is_used = false;
-//     }
-
-//     MemorySlot(char *symbol, int val){
-//         strcpy(this->symbol, symbol);
-//         this->val = val;
-//         this->is_used = false;
-//     }
-
-//     bool is_match(char *symbol){
-//         return strcmp(this->symbol, symbol) == 0;
-//     }
-
-//     int get_val(){
-//         if(this->is_used) return this->val;
-//     }
-
-//     void set_val(int val){
-//         this->val = val;
-//     }
-
-//     bool get_is_used(){
-//         return this->is_used;
-//     }
-
-//     char* get_symbol(){
-//         return this->symbol;
-//     }
-// };
-
-// class Memory{
-//     private:
-//     int mem_size = 0, used_size = 0;
-//     MemorySlot *memory = NULL;
-//     public:
-//     Memory(int size){
-//         this->mem_size = size;
-//         this->used_size = 0;
-//         this->memory = new MemorySlot[this->mem_size];
-//     }
-
-//     int get_val(int addr){
-//         return this->memory[addr].get_val();
-//     }
-
-//     int get_val(char *symbol){
-//         for(int i = 0; i < this->used_size; i++){
-//             if(this->memory[i].is_match(symbol)){
-//                 return this->memory[i].get_val();
-//             }
-//         }
-//         error(MEMNOTSET);
-//     }
-
-//     void set_val(int addr, int val){
-//         if(this->memory[addr].get_is_used()){
-//             this->memory[addr].set_val(val);
-//         }
-//         error(MEMNOTSET);
-//     }
-
-//     void set_val(char *symbol, int val){
-//         for(int i = 0; i < this->mem_size; i++){
-//             if(this->memory[i].is_match(symbol)){
-//                 this->memory[i].set_val(val);
-//                 return;
-//             }
-//         }
-//         strcpy(this->memory[this->used_size].get_symbol(), symbol);
-//         this->memory[this->used_size].set_val(val);
-//         this->used_size++;
-//     }
-// };
 
 class VirtualStack{
     private:
@@ -998,62 +948,173 @@ class VirtualStack{
 };
 
 class MachineCode{
-    public:
+    private:
     VirtualStack vstack;
-    ISA isa;
+    ISA isa = ISA();
+    std::vector<std::string> var_table;
 
+    Memory find_symbol(std::string symbol){
+        for(int i = 0; i < this->var_table.size(); i++){
+            if(symbol == this->var_table.at(i)){
+                return Memory(i);
+            }
+        }
+        code_gen_error(MACHINE_CODE_ERR, "required symbol '%s' not found", symbol.data());
+        return Memory(-1);
+    }
+
+    public:
     const Register TARGET_DEST_REG = Register(0);
     const Register TARGET_SRC_REG = Register(1);
 
     MachineCode(){
         this->vstack = VirtualStack();
-        this->isa = ISA();
+        // this->isa = ISA();
     }
     MachineCode(int reg_start, int reg_end, int mem_start){
         this->vstack = VirtualStack(reg_start, reg_end, mem_start);
-        this->isa = ISA();
+        // this->isa = ISA();
+    }
+
+    Memory add_symbol(char *symbol){
+        this->var_table.push_back(std::string(symbol));
+        return Memory(this->var_table.size() - 1);
+    }
+
+    Memory add_access_symbol(char *symbol){
+        for(int i = 0; i < this->var_table.size(); i++){
+            return Memory(i);
+        }
+        return this->add_symbol(symbol);
+    }
+
+    void move(Space dest, Space src){
+        if(dest.type == Space::TYPE::REG){
+            switch(src.type){
+                case Space::TYPE::CONST:
+                    isa.move(dest.reg, src.constant);
+                break;
+                case Space::TYPE::REG:
+                    isa.move(dest.reg, src.reg);
+                break;
+                case Space::TYPE::MEM:
+                    isa.move(dest.reg, src.mem);
+                break;
+                default:
+                    code_gen_error(MACHINE_CODE_ERR, "invalid move source('%d') type", src.type);
+                break;
+            }
+        }else if(dest.type == Space::TYPE::MEM){
+            switch(src.type){
+                case Space::TYPE::CONST:
+                    isa.move(this->TARGET_DEST_REG, src.constant);
+                    isa.move(dest.mem, this->TARGET_DEST_REG);
+                break;
+                case Space::TYPE::REG:
+                    isa.move(dest.mem, src.reg);
+                break;
+                case Space::TYPE::MEM:
+                    isa.move(this->TARGET_DEST_REG, src.mem);
+                    isa.move(dest.mem, this->TARGET_DEST_REG);
+                break;
+                default:
+                    code_gen_error(MACHINE_CODE_ERR, "invalid move source('%d') type", src.type);
+                break;
+            }
+        }else{
+            code_gen_error(MACHINE_CODE_ERR, "invalid move destination('%d') type", dest.type);
+        }
     }
 
     void push(Space src){
-        Space push_space = this->vstack.push();
-        Space dest = push_space;
+        Space dest = this->vstack.push();
         // @TODO: Adapt to various stack push
-        if(push_space.type == Space::TYPE::REG){
+        this->move(dest, src);
+    }
 
-        }
-
-        if(src.type == Space::TYPE::CONST){
-            // isa.move();
-        }else if(src.type == Space::TYPE::REG){
-
-        }else if(src.type == Space::TYPE::MEM){
-
-        }
+    void pop(Space dest){
+        Space src = this->vstack.pop();
+        // @TODO: Adapt to various stack pop
+        this->move(dest, src);
     }
 
     void arithmetic(ISA::OP op){
         Space src = this->vstack.pop();
         Space dest = this->vstack.pop();
-        Space push_space = this->vstack.push();
+        this->vstack.push();
 
         if(dest.type == Space::REG && src.type == Space::REG){
             isa.arithmetic(op, dest.reg, src.reg);
         }else if(dest.type == Space::MEM && src.type == Space::MEM){
-            isa.move(this->TARGET_DEST_REG, dest);
-            isa.move(this->TARGET_SRC_REG, src);
+            this->move(Space(this->TARGET_DEST_REG), dest);
+            this->move(Space(this->TARGET_SRC_REG), src);
             isa.arithmetic(op, this->TARGET_DEST_REG, this->TARGET_SRC_REG);
-            isa.move(push_space, this->TARGET_DEST_REG);
+            this->move(dest, Space(this->TARGET_DEST_REG));
         }else if(dest.type == Space::REG && src.type == Space::MEM){
-            isa.move(this->TARGET_SRC_REG, src);
+            this->move(Space(this->TARGET_SRC_REG), src);
             isa.arithmetic(op, this->TARGET_DEST_REG, this->TARGET_SRC_REG);
-            // isa.move(push_space, this->TARGET_DEST_REG);
+            // isa.move(dest, this->TARGET_DEST_REG);
         }else if(dest.type == Space::MEM && src.type == Space::REG){
-            isa.move(this->TARGET_DEST_REG, dest);
-            isa.arithmetic(op, this->TARGET_DEST_REG, this->TARGET_SRC_REG);
-            isa.move(push_space, this->TARGET_DEST_REG);
+            this->move(Space(this->TARGET_DEST_REG), dest);
+            isa.arithmetic(op, this->TARGET_DEST_REG, src.reg);
+            this->move(dest, Space(this->TARGET_DEST_REG));
         }else{
             code_gen_error(MACHINE_CODE_ERR, "invalid arithmetic destination('%d') type or source('%d')", dest.type, src.type);
         }
+    }
+
+    int code_gen(BTNode *root){
+        int retval = 0, lv = 0, rv = 0;
+
+        if (root != NULL) {
+            switch (root->data) {
+                case ID:
+                    this->push(Space(this->add_access_symbol(root->lexeme)));
+                    retval = getval(root->lexeme);
+                    break;
+                case INT:
+                    this->push(Space(Constant(atoi(root->lexeme))));
+                    retval = atoi(root->lexeme);
+                    break;
+                case ASSIGN:
+                    rv = evaluateTree(root->right);
+                    this->pop(Space(this->add_access_symbol(root->left->lexeme)));
+                    retval = setval(root->left->lexeme, rv);
+                    break;
+                // @MODIFIED:
+                case INCDEC:
+                    if(strcmp(root->lexeme, "++") == 0) {
+                        rv = getval(root->right->lexeme) + 1;
+                    }else if(strcmp(root->lexeme, "--") == 0) {
+                        rv = getval(root->right->lexeme) - 1;
+                    }
+                    retval = setval(root->right->lexeme, rv);
+                    break;
+                case ADDSUB:
+                case MULDIV:
+                    lv = evaluateTree(root->left);
+                    rv = evaluateTree(root->right);
+                    if (strcmp(root->lexeme, "+") == 0) {
+                        this->arithmetic(ISA::OP::ADD);
+                        retval = lv + rv;
+                    } else if (strcmp(root->lexeme, "-") == 0) {
+                        this->arithmetic(ISA::OP::SUB);
+                        retval = lv - rv;
+                    } else if (strcmp(root->lexeme, "*") == 0) {
+                        this->arithmetic(ISA::OP::MUL);
+                        retval = lv * rv;
+                    } else if (strcmp(root->lexeme, "/") == 0) {
+                        if (rv == 0)
+                            error(DIVZERO);
+                        this->arithmetic(ISA::OP::DIV);
+                        retval = lv / rv;
+                    }
+                    break;
+                default:
+                    retval = 0;
+            }
+        }
+        return retval;
     }
 };
 
@@ -1112,6 +1173,19 @@ void printPrefix(BTNode *root) {
     }
 }
 
+void parse_statement(){
+    BTNode *retp = statement();
+    if(DEBUG){
+        visualize_AST(retp);
+    }
+    MachineCode mc = MachineCode(7, 0, 64);
+    printf(">> %d\n", mc.code_gen(retp));
+    printf("Prefix traversal: ");
+    printPrefix(retp);
+    printf("\n===================\n");
+    freeTree(retp);
+}
+
 /*============================================================================================
 main
 ============================================================================================*/
@@ -1143,7 +1217,7 @@ int main() {
     initTable();
     printf(">> ");
     while (1) {
-        statement();
+        parse_statement();
     }
     return 0;
 }
